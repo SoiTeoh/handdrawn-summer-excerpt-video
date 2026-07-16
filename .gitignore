@@ -4,6 +4,7 @@ public/audio/
 
 .env
 .env.*
+!.env.example
 *.log
 
 *.mp4

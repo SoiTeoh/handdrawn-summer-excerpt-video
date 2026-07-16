@@ -8,6 +8,15 @@ import {fileURLToPath} from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, '..');
 const require = createRequire(import.meta.url);
+const defaultPublicRoot = path.join(projectRoot, 'public');
+
+const resolveRoot = (envName, fallback) =>
+  path.resolve(projectRoot, process.env[envName] || fallback);
+
+const jobsRoot = () => resolveRoot('JOBS_ROOT', path.join(projectRoot, 'jobs'));
+const rendersRoot = () => resolveRoot('RENDERS_ROOT', path.join(projectRoot, 'renders'));
+const publicAudioRoot = () =>
+  resolveRoot('PUBLIC_AUDIO_ROOT', path.join(defaultPublicRoot, 'audio'));
 
 class StageError extends Error {
   constructor(stage, message, details = {}) {
@@ -56,6 +65,17 @@ const timestampJobId = () => {
 const readJson = async (file) => {
   const raw = await fs.readFile(file, 'utf8');
   return JSON.parse(raw);
+};
+
+const resolveInputPath = async (input) => {
+  if (path.isAbsolute(input)) return input;
+  const projectRelative = path.resolve(projectRoot, input);
+  try {
+    await fs.access(projectRelative);
+    return projectRelative;
+  } catch {
+    return path.resolve(jobsRoot(), input);
+  }
 };
 
 const writeJsonAtomic = async (file, value) => {
@@ -243,21 +263,42 @@ const optionalPackageBinary = (packageName) => {
   }
 };
 
-const ffmpegPath = () =>
-  process.env.FFMPEG_PATH ||
-  optionalPackageBinary('@ffmpeg-installer/ffmpeg') ||
-  'ffmpeg';
-const ffprobePath = () =>
-  process.env.FFPROBE_PATH ||
-  optionalPackageBinary('@ffprobe-installer/ffprobe') ||
-  'ffprobe';
+const commandName = (name) => (process.platform === 'win32' ? `${name}.exe` : name);
+
+const commandCandidates = (envName, command, packageName) => {
+  const candidates = [];
+  if (process.env[envName]) candidates.push(process.env[envName]);
+  candidates.push(commandName(command));
+  const packaged = optionalPackageBinary(packageName);
+  if (packaged) candidates.push(packaged);
+  return [...new Set(candidates)];
+};
+
+const runFirstAvailableCommand = async (stage, candidates, args) => {
+  let lastStartError;
+  for (const candidate of candidates) {
+    try {
+      return await runCommand(stage, candidate, args);
+    } catch (error) {
+      const startFailure =
+        error instanceof StageError &&
+        /Failed to start command/.test(error.message);
+      if (!startFailure) throw error;
+      lastStartError = error;
+    }
+  }
+  throw lastStartError;
+};
 
 const mergeAudio = async (segmentFiles, concatFile, outputFile) => {
   const concatText = segmentFiles
     .map((file) => `file '${quoteConcatPath(path.resolve(file))}'`)
     .join('\n');
   await fs.writeFile(concatFile, `${concatText}\n`, 'utf8');
-  await runCommand('merge', ffmpegPath(), [
+  await runFirstAvailableCommand(
+    'merge',
+    commandCandidates('FFMPEG_PATH', 'ffmpeg', '@ffmpeg-installer/ffmpeg'),
+    [
     '-y',
     '-f',
     'concat',
@@ -273,19 +314,24 @@ const mergeAudio = async (segmentFiles, concatFile, outputFile) => {
     '-b:a',
     '192k',
     outputFile,
-  ]);
+    ],
+  );
 };
 
 const probeDuration = async (audioFile) => {
-  const {stdout} = await runCommand('probe', ffprobePath(), [
-    '-v',
-    'error',
-    '-show_entries',
-    'format=duration',
-    '-of',
-    'default=noprint_wrappers=1:nokey=1',
-    audioFile,
-  ]);
+  const {stdout} = await runFirstAvailableCommand(
+    'probe',
+    commandCandidates('FFPROBE_PATH', 'ffprobe', '@ffprobe-installer/ffprobe'),
+    [
+      '-v',
+      'error',
+      '-show_entries',
+      'format=duration',
+      '-of',
+      'default=noprint_wrappers=1:nokey=1',
+      audioFile,
+    ],
+  );
   const duration = Number.parseFloat(stdout.trim());
   if (!Number.isFinite(duration) || duration <= 0) {
     throw new StageError('probe', `ffprobe returned invalid duration: ${stdout.trim()}`);
@@ -294,7 +340,14 @@ const probeDuration = async (audioFile) => {
 };
 
 const publicRelativePath = (file) => {
-  const relative = path.relative(path.join(projectRoot, 'public'), file);
+  const relative = path.relative(defaultPublicRoot, file);
+  if (relative.startsWith('..') || path.isAbsolute(relative)) {
+    throw new StageError(
+      'input',
+      `PUBLIC_AUDIO_ROOT must be inside ${defaultPublicRoot} so Remotion can read static audio files`,
+      {publicAudioRoot: publicAudioRoot()},
+    );
+  }
   return relative.split(path.sep).join('/');
 };
 
@@ -336,13 +389,18 @@ const resolveExistingAudioDuration = async (input) => {
 
 export const runRenderJob = async (rawArgs) => {
   const args = parseArgs(rawArgs);
-  const inputPath = path.resolve(projectRoot, args.input);
-  const job = await readJson(inputPath);
+  const inputPath = await resolveInputPath(args.input);
+  let job;
+  try {
+    job = await readJson(inputPath);
+  } catch (error) {
+    throw new StageError('validate', `Failed to read input JSON: ${inputPath}. ${error.message}`);
+  }
   const mergeInfo = validateJob(job);
   const jobId = args.jobId || job.jobId || timestampJobId();
-  const audioDir = path.join(projectRoot, 'public', 'audio', 'jobs', jobId);
-  const renderDir = path.join(projectRoot, 'renders', 'jobs', jobId);
-  const outputFile = path.resolve(projectRoot, args.output || path.join(renderDir, 'output.mp4'));
+  const audioDir = path.join(publicAudioRoot(), 'jobs', jobId);
+  const renderDir = path.join(rendersRoot(), 'jobs', jobId);
+  const outputFile = path.resolve(args.output || path.join(renderDir, 'output.mp4'));
   const inputFinalFile = path.join(renderDir, 'input.final.json');
   const resultFile = path.join(renderDir, 'result.json');
   await fs.mkdir(audioDir, {recursive: true});
@@ -397,10 +455,10 @@ export const runRenderJob = async (rawArgs) => {
     };
 
     if (typeof finalInput.narration.duration !== 'number') {
-      throw new StageError('json', 'Final narration.duration must be a number');
+      throw new StageError('input', 'Final narration.duration must be a number');
     }
     if (!finalInput.narration.audioSrc) {
-      throw new StageError('json', 'Final narration.audioSrc is required');
+      throw new StageError('input', 'Final narration.audioSrc is required');
     }
 
     await writeJsonAtomic(inputFinalFile, finalInput);
@@ -450,7 +508,11 @@ export const runRenderJob = async (rawArgs) => {
 
 if (fileURLToPath(import.meta.url) === path.resolve(process.argv[1] ?? '')) {
   runRenderJob(process.argv.slice(2)).catch((error) => {
-    console.error(error instanceof StageError ? error.message : error);
+    if (error instanceof StageError) {
+      console.error(`[${error.stage}] ${error.message}`);
+    } else {
+      console.error(error);
+    }
     process.exit(1);
   });
 }
