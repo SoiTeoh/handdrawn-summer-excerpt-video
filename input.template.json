@@ -1,0 +1,38 @@
+{
+  "template": "handdrawn_reading_coloring_video",
+  "version": "1.0.0",
+  "style": "children_coloring_page",
+  "book": {
+    "title": "书名",
+    "chapter": "章节或篇名",
+    "author": "作者"
+  },
+  "video": {
+    "width": 720,
+    "height": 960,
+    "fps": 30
+  },
+  "narration": {
+    "enabled": true,
+    "mode": "full_track",
+    "audioSrc": "{{TTS_full.data.link}}",
+    "duration": "{{TTS_full.data.duration}}",
+    "syncMode": "fit_audio",
+    "volume": 1,
+    "text": "完整口播稿。建议和 TTS_full 节点输入 text 保持一致。"
+  },
+  "scenes": [
+    {
+      "id": "hook",
+      "kind": "hook",
+      "visualMetaphor": "street_frame_people",
+      "visualLabel": "5-8字画面标签",
+      "duration": 6,
+      "eyebrow": "书名或小标题",
+      "title": "一屏标题\n可换行",
+      "body": "一屏只讲一个意思，建议 24-48 个中文字符。",
+      "note": "补充解释或读书笔记，建议 16-36 个中文字符。",
+      "accent": "blue"
+    }
+  ]
+}

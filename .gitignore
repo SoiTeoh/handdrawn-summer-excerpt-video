@@ -1,0 +1,14 @@
+node_modules/
+renders/
+public/audio/
+
+.env
+.env.*
+*.log
+
+*.mp4
+*.mp3
+*.wav
+*.tmp
+
+jobs/render-job-coze-v3-test.json

@@ -1,0 +1,28 @@
+{
+  "name": "handdrawn-summer-excerpt-video",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts SummerExcerptVideo renders/summer-excerpt.mp4 --overwrite --bundle-cache=false",
+    "render:preview": "remotion render src/index.ts SummerExcerptVideo renders/summer-excerpt-preview.mp4 --frames=0-179 --overwrite --bundle-cache=false",
+    "render:coloring": "remotion render src/index.ts SummerExcerptColoringVideo renders/summer-excerpt-coloring.mp4 --overwrite --bundle-cache=false",
+    "render:coloring-preview": "remotion render src/index.ts SummerExcerptColoringVideo renders/summer-excerpt-coloring-preview.mp4 --frames=0-179 --overwrite --bundle-cache=false",
+    "render:job": "node scripts/render-job.mjs",
+    "test:job": "node scripts/test-render-job.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "remotion": "^4.0.274"
+  },
+  "devDependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@ffprobe-installer/ffprobe": "^2.1.2",
+    "@remotion/cli": "^4.0.274",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "typescript": "^5.5.4"
+  }
+}

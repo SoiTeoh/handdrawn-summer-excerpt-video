@@ -1,0 +1,111 @@
+{
+  "template": "handdrawn_reading_coloring_video",
+  "version": "1.0.0",
+  "style": "children_coloring_page",
+  "book": {
+    "title": "我身上有个不可战胜的夏天",
+    "chapter": "荒漠 - 致让·格勒尼耶",
+    "author": "阿尔贝·加缪"
+  },
+  "video": {
+    "width": 720,
+    "height": 960,
+    "fps": 30,
+    "duration": 66
+  },
+  "narration": {
+    "enabled": false,
+    "mode": "none",
+    "audioSrc": "",
+    "duration": 0,
+    "syncMode": "scene_sum",
+    "volume": 1,
+    "text": ""
+  },
+  "scenes": [
+    {
+      "id": "hook",
+      "kind": "hook",
+      "visualMetaphor": "street_frame_people",
+      "visualLabel": "画框挡住路人",
+      "duration": 6,
+      "eyebrow": "《我身上有个不可战胜的夏天》",
+      "title": "我们真的看见\n身边的人了吗？",
+      "body": "在佛罗伦萨和比萨，画里的脸越来越熟，活生生的人却越来越模糊。",
+      "note": "荒漠 - 致让·格勒尼耶",
+      "accent": "blue"
+    },
+    {
+      "id": "masters",
+      "kind": "icons",
+      "visualMetaphor": "museum_faces",
+      "visualLabel": "大师的脸",
+      "duration": 10,
+      "eyebrow": "托斯卡纳的街头",
+      "title": "当大师的面孔\n遮住当代人",
+      "body": "我们渴望从每一张脸上，看见能指明方向、界定行为的东西。",
+      "note": "这种渴望，也让真实的人退到画框之后。",
+      "accent": "green"
+    },
+    {
+      "id": "feeling",
+      "kind": "feeling",
+      "visualMetaphor": "emotion_icons",
+      "visualLabel": "情感长成命运",
+      "duration": 10,
+      "eyebrow": "情感不是装饰",
+      "title": "恨意、爱意、泪水、快乐",
+      "body": "它们随着人的成长与日俱增，慢慢勾勒出命运的样貌。",
+      "note": "情感是一种诗学，其中至关重要的，是真实。",
+      "accent": "red"
+    },
+    {
+      "id": "gesture",
+      "kind": "gesture",
+      "visualMetaphor": "body_gesture",
+      "visualLabel": "真实落在姿态",
+      "duration": 12,
+      "eyebrow": "真实在哪里",
+      "title": "真实不在思想里\n而在姿态里",
+      "body": "画家以“当下”工作。当下并不悬浮，它总是落在身体的姿态之中。",
+      "note": "他们描绘的不是一个笑容，而是一张有血有肉的脸。",
+      "accent": "blue"
+    },
+    {
+      "id": "body",
+      "kind": "courtyard",
+      "visualMetaphor": "empty_courtyard",
+      "visualLabel": "没有明天的庭院",
+      "duration": 12,
+      "eyebrow": "身体没有明天",
+      "title": "不期待明天的人\n为什么要感动？",
+      "body": "身体无关希望，只感受血脉的跳动。永恒的当下，因此显得冷漠而庄严。",
+      "note": "没有预言的画作，也不该在博物馆里寻找希望的理由。",
+      "accent": "ink"
+    },
+    {
+      "id": "summary",
+      "kind": "summary",
+      "visualMetaphor": "meaning_vs_real",
+      "visualLabel": "寻找意义的人",
+      "duration": 10,
+      "eyebrow": "读到这里",
+      "title": "这段话真正刺人的地方",
+      "body": "我们太急着从别人身上寻找意义，于是忘了看见真实；而真实，常常只停在身体、姿态和当下。",
+      "note": "看见人，不是替他寻找答案，而是允许他作为沉默的身体存在。",
+      "accent": "green"
+    },
+    {
+      "id": "ending",
+      "kind": "ending",
+      "visualMetaphor": "real_face",
+      "visualLabel": "真实的脸",
+      "duration": 6,
+      "eyebrow": "一句话收束",
+      "title": "真实的脸\n不负责给我们希望",
+      "body": "它只把此刻交还给身体。",
+      "note": "收藏这段书摘，下次继续读《荒漠》。",
+      "accent": "red"
+    }
+  ]
+}

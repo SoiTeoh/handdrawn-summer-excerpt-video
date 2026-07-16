@@ -1,0 +1,70 @@
+{
+  "jobType": "merge_audio_segments_and_render",
+  "audioMerge": {
+    "required": true,
+    "segments": [
+      {
+        "index": 0,
+        "scene_id": "hook",
+        "link": "https://example.com/segment-000.mp3",
+        "duration": 8.2
+      },
+      {
+        "index": 1,
+        "scene_id": "context",
+        "link": "https://example.com/segment-001.mp3",
+        "duration": 11.5
+      }
+    ]
+  },
+  "input": {
+    "template": "handdrawn_reading_coloring_video",
+    "version": "1.0.0",
+    "style": "children_coloring_page",
+    "book": {
+      "title": "Book title",
+      "chapter": "Chapter or excerpt",
+      "author": "Author"
+    },
+    "video": {
+      "width": 720,
+      "height": 960,
+      "fps": 30
+    },
+    "narration": {
+      "enabled": true,
+      "mode": "full_track",
+      "audioSrc": "audio/jobs/example/narration.mp3",
+      "duration": 19.7,
+      "syncMode": "fit_audio",
+      "volume": 1,
+      "text": "Full narration text."
+    },
+    "scenes": [
+      {
+        "id": "hook",
+        "kind": "hook",
+        "visualMetaphor": "meaning_vs_real",
+        "visualLabel": "opening visual",
+        "duration": 8.2,
+        "eyebrow": "Opening",
+        "title": "A concise title",
+        "body": "One focused idea for this scene.",
+        "note": "A short supporting note.",
+        "accent": "blue"
+      },
+      {
+        "id": "context",
+        "kind": "content",
+        "visualMetaphor": "emotion_icons",
+        "visualLabel": "context visual",
+        "duration": 11.5,
+        "eyebrow": "Context",
+        "title": "A second concise title",
+        "body": "Another focused idea for this scene.",
+        "note": "Another short supporting note.",
+        "accent": "green"
+      }
+    ]
+  }
+}
