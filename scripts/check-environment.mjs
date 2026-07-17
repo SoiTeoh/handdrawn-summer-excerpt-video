@@ -1,5 +1,5 @@
 import fs from 'node:fs/promises';
-import {existsSync} from 'node:fs';
+import {constants, existsSync} from 'node:fs';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {createRequire} from 'node:module';
@@ -56,6 +56,62 @@ const firstWorking = (label, candidates, args) => {
   return undefined;
 };
 
+const isExecutableFile = async (file) => {
+  try {
+    await fs.access(file, constants.X_OK);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const findFilesByName = async (root, names) => {
+  const matches = [];
+  const visit = async (dir) => {
+    let entries;
+    try {
+      entries = await fs.readdir(dir, {withFileTypes: true});
+    } catch {
+      return;
+    }
+    await Promise.all(
+      entries.map(async (entry) => {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          await visit(fullPath);
+        } else if (entry.isFile() && names.includes(entry.name)) {
+          matches.push(fullPath);
+        }
+      }),
+    );
+  };
+  await visit(root);
+  return matches.sort();
+};
+
+const findRemotionManagedBrowsers = async () => {
+  const root = path.join(
+    projectRoot,
+    'node_modules',
+    '.remotion',
+    'chrome-headless-shell',
+  );
+  const names =
+    process.platform === 'win32'
+      ? ['headless_shell.exe', 'headless_shell']
+      : ['headless_shell'];
+  return findFilesByName(root, names);
+};
+
+const resolveCommandPath = (command) => {
+  const resolver =
+    process.platform === 'win32'
+      ? run('where.exe', [command])
+      : run('sh', ['-lc', `command -v ${command}`]);
+  if (resolver.status !== 0) return command;
+  return resolver.stdout.trim().split(/\r?\n/)[0] || command;
+};
+
 const checkNode = () => {
   const version = process.versions.node;
   const major = Number(version.split('.')[0]);
@@ -81,11 +137,32 @@ const checkNpm = () => {
   console.log(`[ok] npm: ${result.stdout.trim()}`);
 };
 
-const checkChrome = () => {
-  const candidates = [];
-  if (process.env.REMOTION_BROWSER_EXECUTABLE) {
-    candidates.push(process.env.REMOTION_BROWSER_EXECUTABLE);
+const checkExecutableBrowserPath = async (label, candidate) => {
+  if (await isExecutableFile(candidate)) {
+    console.log(`[ok] Chrome/Chromium: ${candidate}`);
+    return candidate;
   }
+  failures.push(`${label} is not executable or not found: ${candidate}`);
+  return undefined;
+};
+
+const checkChrome = async () => {
+  if (process.env.REMOTION_BROWSER_EXECUTABLE) {
+    return checkExecutableBrowserPath(
+      'REMOTION_BROWSER_EXECUTABLE',
+      path.resolve(projectRoot, process.env.REMOTION_BROWSER_EXECUTABLE),
+    );
+  }
+
+  const remotionBrowsers = await findRemotionManagedBrowsers();
+  for (const candidate of remotionBrowsers) {
+    if (await isExecutableFile(candidate)) {
+      console.log(`[ok] Chrome/Chromium: ${candidate}`);
+      return candidate;
+    }
+  }
+
+  const candidates = [];
   if (process.platform === 'win32') {
     candidates.push(
       path.join(process.env.LOCALAPPDATA || '', 'Google', 'Chrome', 'Application', 'chrome.exe'),
@@ -105,19 +182,21 @@ const checkChrome = () => {
     );
   }
   for (const candidate of [...new Set(candidates.filter(Boolean))]) {
-    if (path.isAbsolute(candidate) && existsSync(candidate)) {
+    if (path.isAbsolute(candidate) && (await isExecutableFile(candidate))) {
       console.log(`[ok] Chrome/Chromium: ${candidate}`);
       return;
     }
     const result = run(candidate, ['--version']);
     if (result.status === 0) {
-      console.log(`[ok] Chrome/Chromium: ${candidate}`);
+      console.log(`[ok] Chrome/Chromium: ${resolveCommandPath(candidate)}`);
       const firstLine = (result.stdout || result.stderr).trim().split(/\r?\n/)[0];
       if (firstLine) console.log(`     ${firstLine}`);
       return;
     }
   }
-  failures.push(`Chrome/Chromium not found or not executable. Tried: ${[...new Set(candidates.filter(Boolean))].join(', ')}`);
+  failures.push(
+    `Chrome/Chromium not found or not executable. Tried REMOTION_BROWSER_EXECUTABLE, Remotion managed browser under node_modules/.remotion/chrome-headless-shell, and: ${[...new Set(candidates.filter(Boolean))].join(', ')}`,
+  );
 };
 
 const checkFonts = () => {
@@ -179,7 +258,7 @@ const main = async () => {
     commandCandidates('FFPROBE_PATH', 'ffprobe', '@ffprobe-installer/ffprobe'),
     ['-version'],
   );
-  checkChrome();
+  await checkChrome();
   checkFonts();
   await checkPublicAudioRoot();
   await checkWritableDir('renders', resolveRoot('RENDERS_ROOT', 'renders'));
