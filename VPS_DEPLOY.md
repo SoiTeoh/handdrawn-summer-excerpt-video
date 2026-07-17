@@ -147,6 +147,78 @@ renders/jobs/coze-v3-test/
 | `JOBS_ROOT` | Root directory for job JSON files. Defaults to `./jobs`. |
 | `RENDERS_ROOT` | Root directory for render outputs. Defaults to `./renders`. |
 | `PUBLIC_AUDIO_ROOT` | Root directory for generated public audio. Defaults to `./public/audio`. |
+| `HANDDRAWN_API_HOST` | Internal API listen host. Recommended: `127.0.0.1`. |
+| `HANDDRAWN_API_PORT` | Internal API listen port. Recommended: `3003`. |
+| `HANDDRAWN_API_TOKEN` | Bearer token required by `/jobs` endpoints. Use a long random value. |
+| `PUBLIC_DOWNLOAD_ROOT` | Directory where completed MP4 files are copied for Nginx static serving. |
+| `PUBLIC_DOWNLOAD_BASE_URL` | Public URL prefix for copied MP4 files. |
+| `MAX_CONCURRENT_RENDERS` | Render worker concurrency. Keep `1` for the validated VPS baseline. |
+
+## Async HTTP API
+
+The API is intended to run behind Nginx:
+
+```text
+/handdrawn-api/ -> http://127.0.0.1:3003/
+```
+
+Start locally on the VPS shell:
+
+```bash
+export HANDDRAWN_API_HOST=127.0.0.1
+export HANDDRAWN_API_PORT=3003
+export HANDDRAWN_API_TOKEN=replace-with-a-long-random-token
+export PUBLIC_DOWNLOAD_ROOT=/var/www/shudan-assets/handdrawn
+export PUBLIC_DOWNLOAD_BASE_URL=http://129.146.22.243:80/assets/handdrawn
+export MAX_CONCURRENT_RENDERS=1
+npm run api:start
+```
+
+PM2 configuration is provided in `ecosystem.config.cjs`:
+
+```bash
+pm2 start ecosystem.config.cjs
+pm2 logs handdrawn-render-api
+```
+
+Health check:
+
+```bash
+curl http://127.0.0.1:3003/health
+```
+
+Submit a Coze render job:
+
+```bash
+curl -X POST http://127.0.0.1:3003/jobs \
+  -H "Authorization: Bearer $HANDDRAWN_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data-binary @jobs/render-job-vps-test.json
+```
+
+Query status:
+
+```bash
+curl http://127.0.0.1:3003/jobs/<jobId> \
+  -H "Authorization: Bearer $HANDDRAWN_API_TOKEN"
+```
+
+API state and logs:
+
+```text
+jobs/api/<jobId>/request.json
+jobs/api/<jobId>/status.json
+jobs/api/<jobId>/stdout.log
+jobs/api/<jobId>/stderr.log
+```
+
+Completed public video copy:
+
+```text
+/var/www/shudan-assets/handdrawn/<jobId>/output.mp4
+```
+
+Ensure Nginx serves `/assets/handdrawn/` with directory listing disabled.
 
 ## Logging And Failures
 
@@ -180,5 +252,5 @@ Stages:
 
 - Do not commit `node_modules/`, `renders/`, or `public/audio/`.
 - The real Coze job may contain signed TTS URLs. Keep those private.
-- This is a command-line renderer only. It does not include an HTTP API, queue, database, or web UI.
+- The HTTP API is an asynchronous local wrapper only. It does not include a database, distributed queue, or web UI.
 - The visual template is the V3 local stable baseline; this deployment guide does not change scene timing, audio merge order, or `fit_audio` logic.

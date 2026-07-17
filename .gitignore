@@ -13,3 +13,4 @@ public/audio/
 *.tmp
 
 jobs/render-job-coze-v3-test.json
+jobs/api/
