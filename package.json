@@ -9,7 +9,7 @@
     "render:coloring": "remotion render src/index.ts SummerExcerptColoringVideo renders/summer-excerpt-coloring.mp4 --overwrite --bundle-cache=false",
     "render:coloring-preview": "remotion render src/index.ts SummerExcerptColoringVideo renders/summer-excerpt-coloring-preview.mp4 --frames=0-179 --overwrite --bundle-cache=false",
     "render:job": "node scripts/render-job.mjs",
-    "api:start": "node scripts/render-api.mjs",
+    "api:start": "node --env-file=.env scripts/render-api.mjs",
     "test:job": "node scripts/test-render-job.mjs",
     "test:api": "node scripts/test-api.mjs",
     "check:environment": "node scripts/check-environment.mjs",

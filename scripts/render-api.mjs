@@ -19,6 +19,7 @@ const host = process.env.HANDDRAWN_API_HOST || '127.0.0.1';
 const port = Number.parseInt(process.env.HANDDRAWN_API_PORT || '3003', 10);
 const token = process.env.HANDDRAWN_API_TOKEN || '';
 const queue = new RenderQueue();
+let shuttingDown = false;
 
 const sendJson = (res, statusCode, payload) => {
   res.writeHead(statusCode, {
@@ -74,6 +75,11 @@ const publicStatus = (status) => {
 };
 
 const handleCreateJob = async (req, res) => {
+  if (shuttingDown) {
+    sendJson(res, 503, {ok: false, error: 'Server is shutting down'});
+    return;
+  }
+
   if (!requireAuth(req, res)) return;
 
   let body;
@@ -158,4 +164,29 @@ await markInterruptedRunningJobs();
 
 server.listen(port, host, () => {
   console.log(`${serviceName} listening on http://${host}:${port}`);
+});
+
+const shutdown = async (signal) => {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`${serviceName} received ${signal}, closing HTTP server`);
+  await new Promise((resolve) => {
+    server.close((error) => {
+      if (error) console.error(`${serviceName} shutdown error: ${error.message}`);
+      resolve();
+    });
+  });
+  console.log(`${serviceName} HTTP server closed`);
+};
+
+process.on('SIGINT', () => {
+  shutdown('SIGINT').catch((error) => {
+    console.error(`${serviceName} shutdown error: ${error.message}`);
+  });
+});
+
+process.on('SIGTERM', () => {
+  shutdown('SIGTERM').catch((error) => {
+    console.error(`${serviceName} shutdown error: ${error.message}`);
+  });
 });
